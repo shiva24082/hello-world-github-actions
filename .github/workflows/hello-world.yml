@@ -28,68 +28,135 @@ on:
 
 # Environment variables available to all jobs
 env:
-  PYTHON_VERSION: '3.9'
+  PYTHON_VERSION: '3.11'  # Updated to newer Python version
   REQUESTED_DATE: '03-02-2026'
 
 jobs:
   run-hello-world:
-    runs-on: ubuntu-latest  # You can also use windows-latest or macos-latest
+    runs-on: ubuntu-latest
     
     steps:
     # Step 1: Checkout the repository code
     - name: 📥 Checkout code
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 1
+      uses: actions/checkout@v4  # Updated to v4
     
     # Step 2: Set up Python
     - name: 🐍 Set up Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5  # Updated to v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'  # Enable dependency caching
     
     # Step 3: Display Python version
     - name: 🔍 Check Python version
       run: |
         python --version
         python -c "import sys; print(f'Python path: {sys.executable}')"
+        echo "Python location: $(which python)"
     
     # Step 4: List files (for debugging)
     - name: 📁 List repository files
       run: |
-        echo "Repository structure:"
+        echo "=== Repository structure ==="
+        pwd
         ls -la
-        echo "Python files:"
-        find . -name "*.py" -type f
+        
+        echo -e "\n=== Python files ==="
+        find . -name "*.py" -type f | head -20
+        
+        echo -e "\n=== Workflow files ==="
+        find .github -type f
     
     # Step 5: Run the Python program
     - name: 🚀 Run Hello World program
       run: python hello.py
+      id: run_hello
     
-    # Step 6: Create a log file
+    # Step 6: Create a detailed log file
     - name: 📝 Create execution log
       run: |
         echo "=== Hello World Execution Log ===" > execution.log
-        echo "Timestamp: $(date)" >> execution.log
+        echo "Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> execution.log
         echo "Requested Date: ${{ env.REQUESTED_DATE }}" >> execution.log
+        echo "Actual Date: $(date -u '+%d-%m-%Y')" >> execution.log
         echo "Workflow: ${{ github.workflow }}" >> execution.log
         echo "Run ID: ${{ github.run_id }}" >> execution.log
         echo "Run Number: ${{ github.run_number }}" >> execution.log
         echo "Actor: ${{ github.actor }}" >> execution.log
         echo "Repository: ${{ github.repository }}" >> execution.log
+        echo "Ref: ${{ github.ref }}" >> execution.log
+        echo "SHA: ${{ github.sha }}" >> execution.log
+        
+        # Add system info
+        echo -e "\n=== System Information ===" >> execution.log
+        echo "Runner OS: $(uname -s)" >> execution.log
+        echo "Kernel Version: $(uname -r)" >> execution.log
+        echo "Architecture: $(uname -m)" >> execution.log
+        
+        # Add Python info
+        echo -e "\n=== Python Information ===" >> execution.log
+        python --version >> execution.log 2>&1
+        echo "Python path: $(which python)" >> execution.log
+        
+        # Add disk space info
+        echo -e "\n=== Disk Space ===" >> execution.log
+        df -h >> execution.log
+        
+        # Show log contents for verification
+        echo -e "\nLog file created with contents:"
+        cat execution.log
     
-    # Step 7: Upload log as artifact (optional)
-    - name: 📤 Upload log artifact
-      uses: actions/upload-artifact@v3
+    # Step 7: Create a simple output file
+    - name: 📄 Create output file
+      run: |
+        echo "Hello World Program Output" > output.txt
+        echo "==========================" >> output.txt
+        echo "Generated on: $(date)" >> output.txt
+        echo "Status: Success" >> output.txt
+        echo "Visit: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> output.txt
+    
+    # Step 8: Upload artifacts using latest version
+    - name: 📤 Upload artifacts
+      uses: actions/upload-artifact@v4  # Updated to v4
       with:
-        name: execution-logs
-        path: execution.log
-        retention-days: 7
+        name: hello-world-artifacts
+        path: |
+          execution.log
+          output.txt
+        retention-days: 30
+        if-no-files-found: error  # Fail if no files found
     
-    # Step 8: Success message
-    - name: ✅ Display success
+    # Step 9: Upload workflow summary
+    - name: 📊 Create workflow summary
+      run: |
+        echo "## 🎉 Hello World Execution Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Workflow:** ${{ github.workflow }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Run ID:** [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+        echo "**Status:** ✅ Success" >> $GITHUB_STEP_SUMMARY
+        echo "**Date Checked:** 03-02-2026" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📁 Generated Artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "- `execution.log`: Detailed execution log" >> $GITHUB_STEP_SUMMARY
+        echo "- `output.txt`: Program output summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔧 Technical Details" >> $GITHUB_STEP_SUMMARY
+        echo "- **Runner:** ubuntu-latest" >> $GITHUB_STEP_SUMMARY
+        echo "- **Python Version:** ${{ env.PYTHON_VERSION }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+    
+    # Step 10: Success message
+    - name: ✅ Display completion
       run: |
         echo "========================================"
         echo "🎉 Workflow completed successfully!"
-        echo "Check the 'Artifacts' section for logs"
+        echo "========================================"
+        echo ""
+        echo "📊 Summary:"
+        echo "  - Python program executed"
+        echo "  - Artifacts uploaded"
+        echo "  - Logs created"
+        echo ""
+        echo "📁 Download artifacts from the workflow run page"
+        echo "🔗 View this run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
         echo "========================================"
