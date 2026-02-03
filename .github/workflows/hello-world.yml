@@ -1,0 +1,95 @@
+name: Hello World with Python
+
+on:
+  # Trigger on push to main branch
+  push:
+    branches: [ main, master ]
+  
+  # Trigger on pull request to main branch
+  pull_request:
+    branches: [ main, master ]
+  
+  # Schedule to run daily at 00:00 UTC
+  schedule:
+    - cron: '0 0 * * *'
+  
+  # Allow manual trigger from GitHub UI
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to run in'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - development
+        - staging
+        - production
+
+# Environment variables available to all jobs
+env:
+  PYTHON_VERSION: '3.9'
+  REQUESTED_DATE: '03-02-2026'
+
+jobs:
+  run-hello-world:
+    runs-on: ubuntu-latest  # You can also use windows-latest or macos-latest
+    
+    steps:
+    # Step 1: Checkout the repository code
+    - name: 📥 Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 1
+    
+    # Step 2: Set up Python
+    - name: 🐍 Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    # Step 3: Display Python version
+    - name: 🔍 Check Python version
+      run: |
+        python --version
+        python -c "import sys; print(f'Python path: {sys.executable}')"
+    
+    # Step 4: List files (for debugging)
+    - name: 📁 List repository files
+      run: |
+        echo "Repository structure:"
+        ls -la
+        echo "Python files:"
+        find . -name "*.py" -type f
+    
+    # Step 5: Run the Python program
+    - name: 🚀 Run Hello World program
+      run: python hello.py
+    
+    # Step 6: Create a log file
+    - name: 📝 Create execution log
+      run: |
+        echo "=== Hello World Execution Log ===" > execution.log
+        echo "Timestamp: $(date)" >> execution.log
+        echo "Requested Date: ${{ env.REQUESTED_DATE }}" >> execution.log
+        echo "Workflow: ${{ github.workflow }}" >> execution.log
+        echo "Run ID: ${{ github.run_id }}" >> execution.log
+        echo "Run Number: ${{ github.run_number }}" >> execution.log
+        echo "Actor: ${{ github.actor }}" >> execution.log
+        echo "Repository: ${{ github.repository }}" >> execution.log
+    
+    # Step 7: Upload log as artifact (optional)
+    - name: 📤 Upload log artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: execution-logs
+        path: execution.log
+        retention-days: 7
+    
+    # Step 8: Success message
+    - name: ✅ Display success
+      run: |
+        echo "========================================"
+        echo "🎉 Workflow completed successfully!"
+        echo "Check the 'Artifacts' section for logs"
+        echo "========================================"
